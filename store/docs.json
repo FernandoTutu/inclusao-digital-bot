@@ -1,0 +1,42 @@
+[
+  {
+    "id": "o_que_e",
+    "title": "O que é Acessibilidade Digital?",
+    "text": "Acessibilidade digital significa projetar sites, apps e conteúdos para que todas as pessoas possam usá-los, incluindo pessoas com deficiência. Isso inclui compatibilidade com leitores de tela, navegação por teclado, textos alternativos para imagens, legendas em vídeos e documentos acessíveis."
+  },
+  {
+    "id": "boas_praticas",
+    "title": "Boas práticas gerais",
+    "text": "Boas práticas: fornecer textos alternativos em imagens (alt), usar títulos e cabeçalhos semânticos, garantir contraste de cores suficiente, tornar campos de formulário claramente rotulados, evitar conteúdo piscante, legendar vídeos e fornecer versões em texto de documentos."
+  },
+  {
+    "id": "imagens_alt",
+    "title": "Imagens e texto alternativo (alt text)",
+    "text": "O texto alternativo (alt) descreve a imagem para quem usa leitores de tela. Deve ser breve e informativo, explicando o propósito da imagem. Para imagens decorativas, use alt vazio (alt=\"\"). Evite descrições excessivamente longas; se precisar, ofereça uma descrição detalhada separada."
+  },
+  {
+    "id": "videos_legendas",
+    "title": "Vídeos: legendas e descrição",
+    "text": "Sempre ofereça legendas sincronizadas para diálogos e informações relevantes. Para pessoas com deficiência visual, considere fornecer audiodescrição (descrição em áudio do que aparece visualmente). Inclua transcrições textuais quando possível."
+  },
+  {
+    "id": "pdfs_acessiveis",
+    "title": "Como criar PDFs acessíveis",
+    "text": "Ao gerar PDFs: certifique-se de que o PDF tenha texto pesquisável (não apenas imagem), use marcadores/headings semânticos, inclua descrições alternativas para imagens e verifique com ferramentas de acessibilidade (ex.: leitor de tela). Evite digitalizações sem OCR."
+  },
+  {
+    "id": "formularios",
+    "title": "Formulários acessíveis",
+    "text": "Formulários devem ter labels claros, instruções visíveis, foco lógico ao tabular, mensagens de erro compreensíveis e associações corretas entre labels e campos. Evite placeholders como única instrução, pois não são lidos consistentemente por leitores de tela."
+  },
+  {
+    "id": "legislacao",
+    "title": "Leis, normas e referências (WCAG / Brasil)",
+    "text": "Padrões internacionais: WCAG (Web Content Accessibility Guidelines). No Brasil, há legislações e decretos que exigem acessibilidade em serviços públicos e materiais digitais. Consulte normas técnicas e orientações locais para adequação legal."
+  },
+  {
+    "id": "recursos_contatos",
+    "title": "Recursos e contatos úteis",
+    "text": "Recursos úteis:\n• SaferNet (www.safernet.org.br)\n• Ouvidorias locais e Defensoria Pública\n• Delegacias de crimes cibernéticos\n• Instagram: https://www.instagram.com/webacessibilidade/\nUse esses canais para orientação, denúncias e materiais de apoio."
+  }
+]
