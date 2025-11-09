@@ -1,90 +1,163 @@
-import TelegramBot from "node-telegram-bot-api";
-import dotenv from "dotenv";
-import https from "https";
+const TelegramBot = require('node-telegram-bot-api');
+const fs = require('fs');
+const path = require('path');
 
-dotenv.config();
-
-const TOKEN = "8587728506:AAGj2BaQT79Jp3-Xh59iZs2_t2ezW4zbBRE";
-if (!TOKEN) {
-  console.error("Falta BOT_TOKEN no ambiente");
-  process.exit(1);
-}
-
-const deleteWebhook = () => {
-  const url = `https://api.telegram.org/bot${TOKEN}/deleteWebhook`;
-  https.get(url).on("error", () => {});
-};
-
-deleteWebhook();
-
+const TOKEN = 'SEU_TOKEN_AQUI';
 const bot = new TelegramBot(TOKEN, { polling: true });
 
-const mainKeyboard = [
-  ["📘 O que é Acessibilidade Digital?"],
-  ["⚙️ Ferramentas e Boas Práticas"],
-  ["🧠 Dicas de Inclusão Online"],
-  ["🔗 Saiba mais"]
+const STORE_DIR = path.join(__dirname, "store");
+if (!fs.existsSync(STORE_DIR)) fs.mkdirSync(STORE_DIR);
+const DOCS_FILE = path.join(STORE_DIR, "docs.json");
+
+const DEFAULT_DOCS = [
+  {
+    id: "o_que_e",
+    title: "O que é Acessibilidade Digital?",
+    text: "Acessibilidade digital significa projetar sites, apps e conteúdos para que todas as pessoas possam usá-los, incluindo pessoas com deficiência. Isso inclui compatibilidade com leitores de tela, navegação por teclado, textos alternativos para imagens, legendas em vídeos e documentos acessíveis."
+  },
+  {
+    id: "boas_praticas",
+    title: "Boas práticas gerais",
+    text: "Boas práticas: fornecer textos alternativos em imagens (alt), usar títulos e cabeçalhos semânticos, garantir contraste de cores suficiente, tornar campos de formulário claramente rotulados, evitar conteúdo piscante, legendar vídeos e fornecer versões em texto de documentos."
+  },
+  {
+    id: "imagens_alt",
+    title: "Imagens e texto alternativo (alt text)",
+    text: "O texto alternativo (alt) descreve a imagem para quem usa leitores de tela. Deve ser breve e informativo, explicando o propósito da imagem. Para imagens decorativas, use alt vazio (alt=\"\"). Evite descrições excessivamente longas; se precisar, ofereça uma descrição detalhada separada."
+  },
+  {
+    id: "videos_legendas",
+    title: "Vídeos: legendas e descrição",
+    text: "Sempre ofereça legendas sincronizadas para diálogos e informações relevantes. Para pessoas com deficiência visual, considere fornecer audiodescrição (descrição em áudio do que aparece visualmente). Inclua transcrições textuais quando possível."
+  },
+  {
+    id: "pdfs_acessiveis",
+    title: "Como criar PDFs acessíveis",
+    text: "Ao gerar PDFs: certifique-se de que o PDF tenha texto pesquisável (não apenas imagem), use marcadores/headings semânticos, inclua descrições alternativas para imagens e verifique com ferramentas de acessibilidade (ex.: leitor de tela). Evite digitalizações sem OCR."
+  },
+  {
+    id: "formularios",
+    title: "Formulários acessíveis",
+    text: "Formulários devem ter labels claros, instruções visíveis, foco lógico ao tabular, mensagens de erro compreensíveis e associações corretas entre labels e campos. Evite placeholders como única instrução, pois não são lidos consistentemente por leitores de tela."
+  },
+  {
+    id: "legislacao",
+    title: "Leis, normas e referências (WCAG / Brasil)",
+    text: "Padrões internacionais: WCAG (Web Content Accessibility Guidelines). No Brasil, há legislações e decretos que exigem acessibilidade em serviços públicos e materiais digitais. Consulte normas técnicas e orientações locais para adequação legal."
+  },
+  {
+    id: "recursos_contatos",
+    title: "Recursos e contatos úteis",
+    text: "Recursos úteis:\n• SaferNet (www.safernet.org.br)\n• Ouvidorias locais e Defensoria Pública\n• Delegacias de crimes cibernéticos\n• Instagram: https://www.instagram.com/webacessibilidade/\nUse esses canais para orientação, denúncias e materiais de apoio."
+  }
 ];
 
-function showMenu(chatId) {
-  bot.sendMessage(chatId, "🌐 Bem-vindo ao Inclusao Digital Bot!\nEscolha uma opção:", {
-    reply_markup: { keyboard: mainKeyboard, resize_keyboard: true, one_time_keyboard: false }
-  });
+function loadDocs() {
+  try {
+    if (!fs.existsSync(DOCS_FILE)) {
+      fs.writeFileSync(DOCS_FILE, JSON.stringify(DEFAULT_DOCS, null, 2));
+      return DEFAULT_DOCS.slice();
+    }
+    const raw = fs.readFileSync(DOCS_FILE, "utf8");
+    const parsed = JSON.parse(raw);
+    const ids = new Set(parsed.map(p => p.id));
+    const missing = DEFAULT_DOCS.some(d => !ids.has(d.id));
+    if (missing) {
+      fs.writeFileSync(DOCS_FILE, JSON.stringify(DEFAULT_DOCS, null, 2));
+      return DEFAULT_DOCS.slice();
+    }
+    return parsed;
+  } catch (e) {
+    fs.writeFileSync(DOCS_FILE, JSON.stringify(DEFAULT_DOCS, null, 2));
+    return DEFAULT_DOCS.slice();
+  }
+}
+
+let docs = loadDocs();
+
+function getDocById(id) {
+  let doc = docs.find(d => d.id === id);
+  if (doc) return doc;
+  doc = docs.find(d => d.id && d.id.includes(id));
+  if (doc) return doc;
+  doc = docs.find(d => d.title && d.title.toLowerCase().includes(id.replace(/_/g, ' ').toLowerCase()));
+  if (doc) return doc;
+  doc = docs.find(d => d.id && d.id.replace(//g, '').toLowerCase() === id.replace(//g, '').toLowerCase());
+  return doc || null;
+}
+
+function mainMenuOptions() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "O que é Acessibilidade Digital?", callback_data: "o_que_e" }],
+        [{ text: "Boas práticas gerais", callback_data: "boas_praticas" }, { text: "Imagens e alt text", callback_data: "imagens_alt" }],
+        [{ text: "Vídeos: legendas & descrição", callback_data: "videos_legendas" }, { text: "PDFs acessíveis", callback_data: "pdfs_acessiveis" }],
+        [{ text: "Formulários acessíveis", callback_data: "formularios" }, { text: "Leis e normas (WCAG)", callback_data: "legislacao" }],
+        [{ text: "Recursos & Contatos (Instagram)", callback_data: "recursos_contatos" }],
+        [{ text: "🔄 Recarregar conteúdo", callback_data: "reload_docs" }]
+      ]
+    }
+  };
 }
 
 bot.onText(/\/start/, (msg) => {
-  showMenu(msg.chat.id);
+  const chatId = msg.chat.id;
+  bot.sendMessage(chatId, "👋 Bem-vindo(a) ao Inclusão Digital Bot — tema: Acessibilidade Digital.\nEscolha uma opção no menu abaixo para obter informações detalhadas.", { parse_mode: "Markdown", ...mainMenuOptions() });
 });
 
-bot.on("message", (msg) => {
+bot.onText(/\/menu/, (msg) => {
   const chatId = msg.chat.id;
-  const text = String(msg.text || "");
+  bot.sendMessage(chatId, "📚 Menu — Acessibilidade Digital:", mainMenuOptions());
+});
 
-  if (text === "/start") return;
+bot.on('callback_query', async (callbackQuery) => {
+  const data = callbackQuery.data;
+  const msg = callbackQuery.message;
+  const chatId = msg.chat.id;
 
-  if (text === "📘 O que é Acessibilidade Digital?") {
-    bot.sendMessage(chatId, "Acessibilidade digital garante que todas as pessoas possam acessar, entender e usar conteúdos digitais. Exemplos: textos alternativos em imagens, estrutura semântica, contraste adequado e compatibilidade com leitores de tela.", { reply_markup: { inline_keyboard: [[{ text: "🔙 Voltar", callback_data: "menu" }]] } });
+  if (data === "menu_back") {
+    await bot.answerCallbackQuery(callbackQuery.id);
+    await bot.sendMessage(chatId, "📚 Menu — Acessibilidade Digital:", mainMenuOptions());
     return;
   }
 
-  if (text === "⚙️ Ferramentas e Boas Práticas") {
-    bot.sendMessage(chatId, "Ferramentas: WAVE, Lighthouse, NVDA. Boas práticas: textos claros, legendas em vídeos, descrições de imagens, navegação por teclado.", { reply_markup: { inline_keyboard: [[{ text: "🔙 Voltar", callback_data: "menu" }]] } });
+  if (data === "reload_docs") {
+    docs = DEFAULT_DOCS.slice();
+    fs.writeFileSync(DOCS_FILE, JSON.stringify(docs, null, 2));
+    await bot.answerCallbackQuery(callbackQuery.id, { text: "Conteúdo recarregado." });
+    await bot.sendMessage(chatId, "Conteúdo recarregado. Volte ao menu:", mainMenuOptions());
     return;
   }
 
-  if (text === "🧠 Dicas de Inclusão Online") {
-    bot.sendMessage(chatId, "Dicas: 1) Escreva simples; 2) Use legendas; 3) Forneça alternativas textuais; 4) Evite conteúdos que dependam só de cor.", { reply_markup: { inline_keyboard: [[{ text: "🔙 Voltar", callback_data: "menu" }]] } });
-    return;
-  }
-
-  if (text === "🔗 Saiba mais") {
-    bot.sendMessage(chatId, "Confira recursos e nossa página:\nhttps://www.instagram.com/webacessibilidade/\n\nTambém disponibilizamos a cartilha digital.", {
+  const doc = getDocById(data);
+  if (doc) {
+    const text = *${doc.title}*\n\n${doc.text}\n\n🔙 Pressione abaixo para voltar ao menu.;
+    await bot.answerCallbackQuery(callbackQuery.id).catch(()=>{});
+    await bot.sendMessage(chatId, text, {
+      parse_mode: "Markdown",
       reply_markup: {
         inline_keyboard: [
-          [{ text: "📘 Baixar Cartilha (PDF)", url: "https://inclusao-digital-bot.onrender.com/cartilha.pdf" }],
-          [{ text: "🔙 Voltar", callback_data: "menu" }]
+          [{ text: "⬅ Voltar ao menu", callback_data: "menu_back" }]
         ]
       }
     });
     return;
   }
 
-  showMenu(chatId);
+  await bot.answerCallbackQuery(callbackQuery.id, { text: "Opção não reconhecida. Abrindo menu..." });
+  await bot.sendMessage(chatId, "Opção não reconhecida. Abra o menu novamente:", mainMenuOptions());
+  console.warn("Callback desconhecido recebido:", data);
 });
 
-bot.on("callback_query", (q) => {
-  const chatId = q.message.chat.id;
-  if (q.data === "menu") showMenu(chatId);
-  bot.answerCallbackQuery(q.id).catch(()=>{});
+bot.on('message', (msg) => {
+  const text = (msg.text || "").trim();
+  if (text === '/start' || text === '/menu') return;
+  bot.sendMessage(msg.chat.id, "Use o menu para escolher uma opção sobre Acessibilidade Digital:", mainMenuOptions());
 });
 
-bot.on("polling_error", (err) => {
-  console.error("Polling error:", err && err.code ? err.code : err);
+bot.on('polling_error', err => {
+  console.error('polling_error', err);
 });
 
-process.on("SIGINT", () => {
-  bot.stopPolling().then(() => process.exit(0)).catch(() => process.exit(0));
-});
-process.on("SIGTERM", () => {
-  bot.stopPolling().then(() => process.exit(0)).catch(() => process.exit(0));
-});
+console.log('Bot iniciado e aguardando interações...');
