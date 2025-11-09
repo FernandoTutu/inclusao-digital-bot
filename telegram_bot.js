@@ -1,161 +1,221 @@
-require('dotenv').config();
-const express = require('express');
-const bodyParser = require('body-parser');
-const TelegramBot = require('node-telegram-bot-api');
+// telegram_bot.js
+import express from "express";
+import TelegramBot from "node-telegram-bot-api";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const app = express();
-app.use(bodyParser.json());
-app.use(express.static('public')); // <- serve o PDF
+// =============================
+// 🔧 CONFIGURAÇÕES INICIAIS
+// =============================
+dotenv.config();
 
-const PORT = process.env.PORT || 3000;
 const TOKEN = process.env.TOKEN;
-const WEBHOOK_URL = process.env.WEBHOOK_URL; // exemplo: https://inclusao-digital-bot.onrender.com
+const WEBHOOK_URL = process.env.WEBHOOK_URL;
+const PORT = process.env.PORT || 10000;
 
-if (!TOKEN || !WEBHOOK_URL) {
-  console.error('❌ Erro: faltando TOKEN ou WEBHOOK_URL no ambiente.');
-  process.exit(1);
-}
+// Express App
+const app = express();
+app.use(express.static("public")); // Permite servir arquivos (como PDF, imagens, etc.)
 
+// Corrigir __dirname no ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// =============================
+// 🤖 INICIALIZANDO O BOT
+// =============================
 const bot = new TelegramBot(TOKEN);
-const webhookPath = `/bot${TOKEN}`;
-const fullWebhookUrl = `${WEBHOOK_URL}${webhookPath}`;
+bot.setWebHook(`${WEBHOOK_URL}/bot${TOKEN}`);
 
-(async () => {
-  try {
-    await bot.setWebHook(fullWebhookUrl);
-    console.log(`✅ Webhook registrado em: ${fullWebhookUrl}`);
-  } catch (err) {
-    console.error('❌ Erro ao registrar webhook:', err);
-  }
-})();
+app.post(`/bot${TOKEN}`, (req, res) => bot.processUpdate(req.body));
 
-const mainMenu = {
-  inline_keyboard: [
-    [
-      { text: 'O que é acessibilidade?', callback_data: 'what' },
-      { text: 'Como tornar acessível', callback_data: 'how' }
-    ],
-    [
-      { text: 'Boas práticas', callback_data: 'tips' },
-      { text: 'Ferramentas', callback_data: 'tools' }
-    ],
-    [
-      { text: 'Leis e direitos', callback_data: 'laws' },
-      { text: 'Por que incluir?', callback_data: 'why' }
-    ],
-    [
-      { text: 'Testar acessibilidade', callback_data: 'test' },
-      { text: 'Saiba mais 💡', callback_data: 'learn_more' }
-    ]
-  ]
-};
+// =============================
+// 📜 FUNÇÕES AUXILIARES
+// =============================
 
-const backButton = {
-  inline_keyboard: [[{ text: '🔙 Voltar ao menu', callback_data: 'menu' }]]
-};
-
-function sendMenu(chatId) {
-  const text = `<b>🤖 Inclusão Digital Bot</b>\n\nSelecione um tema para aprender sobre <b>acessibilidade digital</b> e como tornar a internet mais inclusiva!`;
-  return bot.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: mainMenu });
+// Função de retorno ao menu principal
+function mainMenu(chatId) {
+  const menu = {
+    reply_markup: {
+      resize_keyboard: true,
+      keyboard: [
+        [{ text: "📘 O que é Acessibilidade Digital?" }],
+        [{ text: "⚙️ Como tornar o conteúdo acessível" }],
+        [{ text: "🧰 Ferramentas úteis" }],
+        [{ text: "📜 Direitos e Leis" }],
+        [{ text: "💡 Saiba mais" }],
+      ],
+    },
+  };
+  bot.sendMessage(chatId, "Escolha uma das opções abaixo 👇", menu);
 }
 
-app.post(webhookPath, (req, res) => {
-  bot.processUpdate(req.body);
-  res.sendStatus(200);
+// =============================
+// 🎯 COMANDOS DO BOT
+// =============================
+bot.onText(/\/start/, (msg) => {
+  const chatId = msg.chat.id;
+
+  bot.sendMessage(
+    chatId,
+    `👋 Olá, *${msg.from.first_name || "usuário"}!*  
+Sou o *Bot da Inclusão Digital* 🤖  
+
+Aqui você encontra informações sobre **acessibilidade digital e inclusão**.  
+Escolha abaixo o que deseja aprender 👇`,
+    {
+      parse_mode: "Markdown",
+      reply_markup: {
+        resize_keyboard: true,
+        keyboard: [
+          [{ text: "📘 O que é Acessibilidade Digital?" }],
+          [{ text: "⚙️ Como tornar o conteúdo acessível" }],
+          [{ text: "🧰 Ferramentas úteis" }],
+          [{ text: "📜 Direitos e Leis" }],
+          [{ text: "💡 Saiba mais" }],
+        ],
+      },
+    }
+  );
 });
 
-app.get('/', (req, res) => res.send('Inclusão Digital Bot ativo 💬'));
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+// =============================
+// 🗂️ RESPOSTAS AOS BOTÕES
+// =============================
+bot.on("message", (msg) => {
+  const chatId = msg.chat.id;
+  const text = msg.text;
 
-bot.onText(/\/start|\/menu/i, (msg) => sendMenu(msg.chat.id));
+  // --- Opção 1
+  if (text === "📘 O que é Acessibilidade Digital?") {
+    bot.sendMessage(
+      chatId,
+      "🌍 *Acessibilidade digital* é o conjunto de práticas que garantem que todas as pessoas, incluindo pessoas com deficiência, possam usar sites, aplicativos e conteúdos online com autonomia e respeito.",
+      {
+        parse_mode: "Markdown",
+        reply_markup: {
+          inline_keyboard: [[{ text: "🔙 Voltar ao menu", callback_data: "menu" }]],
+        },
+      }
+    );
+  }
 
-bot.on('callback_query', async (query) => {
-  const data = query.data;
-  const chatId = query.message.chat.id;
-  await bot.answerCallbackQuery(query.id);
+  // --- Opção 2
+  else if (text === "⚙️ Como tornar o conteúdo acessível") {
+    bot.sendMessage(
+      chatId,
+      "💡 Dicas para deixar seu conteúdo mais acessível:\n\n" +
+        "• Adicione *descrições (alt text)* em imagens.\n" +
+        "• Garanta bom contraste entre texto e fundo.\n" +
+        "• Evite textos importantes apenas em imagens.\n" +
+        "• Legende vídeos e ofereça transcrições de áudios.\n" +
+        "• Permita navegação por teclado.\n" +
+        "• Use headings (H1, H2, etc.) corretamente.",
+      {
+        parse_mode: "Markdown",
+        reply_markup: {
+          inline_keyboard: [[{ text: "🔙 Voltar ao menu", callback_data: "menu" }]],
+        },
+      }
+    );
+  }
 
-  try {
-    switch (data) {
-      case 'menu':
-        return sendMenu(chatId);
+  // --- Opção 3
+  else if (text === "🧰 Ferramentas úteis") {
+    bot.sendMessage(
+      chatId,
+      "🧩 *Ferramentas de acessibilidade:*\n\n" +
+        "🔹 WAVE — analisa acessibilidade de sites.\n" +
+        "🔹 NVDA — leitor de tela gratuito.\n" +
+        "🔹 Lighthouse — auditoria de acessibilidade do Chrome.\n" +
+        "🔹 Contrast Checker — mede contraste de cores.",
+      {
+        parse_mode: "Markdown",
+        reply_markup: {
+          inline_keyboard: [[{ text: "🔙 Voltar ao menu", callback_data: "menu" }]],
+        },
+      }
+    );
+  }
 
-      case 'what':
-        return bot.sendMessage(
-          chatId,
-          `<b>O que é acessibilidade digital?</b>\n\nÉ garantir que todas as pessoas, com ou sem deficiência, possam usar sites, aplicativos e conteúdos online com autonomia.`,
-          { parse_mode: 'HTML', reply_markup: backButton }
-        );
+  // --- Opção 4
+  else if (text === "📜 Direitos e Leis") {
+    bot.sendMessage(
+      chatId,
+      "⚖️ *Leis sobre acessibilidade digital no Brasil:*\n\n" +
+        "📘 *Lei Brasileira de Inclusão (13.146/2015)*\n" +
+        "📗 *Lei nº 10.098/2000* — Normas gerais e critérios básicos de acessibilidade.\n" +
+        "📘 *Decreto nº 5.296/2004* — Regulamenta e detalha essas normas.",
+      {
+        parse_mode: "Markdown",
+        reply_markup: {
+          inline_keyboard: [[{ text: "🔙 Voltar ao menu", callback_data: "menu" }]],
+        },
+      }
+    );
+  }
 
-      case 'how':
-        return bot.sendMessage(
-          chatId,
-          `<b>Como tornar um site acessível?</b>\n\n1️⃣ Use textos alternativos em imagens.\n2️⃣ Permita navegação por teclado.\n3️⃣ Tenha contraste adequado.\n4️⃣ Evite conteúdo piscante.\n5️⃣ Ofereça legendas e transcrições.`,
-          { parse_mode: 'HTML', reply_markup: backButton }
-        );
-
-      case 'tips':
-        return bot.sendMessage(
-          chatId,
-          `<b>Boas práticas rápidas</b>\n\n✔️ Linguagem clara e inclusiva.\n✔️ Links descritivos (evite “clique aqui”).\n✔️ Evite excesso de texto.\n✔️ Revise contraste e fonte.`,
-          { parse_mode: 'HTML', reply_markup: backButton }
-        );
-
-      case 'tools':
-        return bot.sendMessage(
-          chatId,
-          `<b>Ferramentas úteis</b>\n\n🧰 WAVE — verifica acessibilidade.\n🧰 NVDA — leitor de tela gratuito.\n🧰 Lighthouse — análise no Chrome.\n🧰 Contrast Checker — testa cores.`,
-          { parse_mode: 'HTML', reply_markup: backButton }
-        );
-
-      case 'laws':
-        return bot.sendMessage(
-          chatId,
-          `<b>Leis e direitos (Brasil)</b>\n\n📘 Lei Brasileira de Inclusão (13.146/2015)\n📘 Lei nº 10.098/2000 — normas de acessibilidade\n📘 Decreto nº 5.296/2004 — acessibilidade em comunicação digital.`,
-          { parse_mode: 'HTML', reply_markup: backButton }
-        );
-
-      case 'why':
-        return bot.sendMessage(
-          chatId,
-          `<b>Por que a inclusão importa?</b>\n\nPorque a acessibilidade digital é um direito humano. Promove igualdade, autonomia e participação social de todos.`,
-          { parse_mode: 'HTML', reply_markup: backButton }
-        );
-
-      case 'test':
-        return bot.sendMessage(
-          chatId,
-          `<b>Dicas para testar acessibilidade</b>\n\n✅ Use só o teclado.\n✅ Teste leitores de tela.\n✅ Avalie cores e contraste.\n✅ Peça feedback de pessoas reais.`,
-          { parse_mode: 'HTML', reply_markup: backButton }
-        );
-
-      case 'learn_more':
-        const more = {
+  // --- Opção 5
+  else if (text === "💡 Saiba mais") {
+    bot.sendMessage(
+      chatId,
+      "💬 Deseja acessar nossa *Cartilha Digital* ou saber mais sobre o projeto?",
+      {
+        parse_mode: "Markdown",
+        reply_markup: {
           inline_keyboard: [
-            [{ text: '🌐 Instagram Web Acessibilidade', url: 'https://www.instagram.com/webacessibilidade/' }],
-            [{ text: '📘 Baixar Cartilha Digital', callback_data: 'get_pdf' }],
-            [{ text: '🔙 Voltar ao menu', callback_data: 'menu' }]
-          ]
-        };
-        return bot.sendMessage(
-          chatId,
-          `<b>Saiba mais sobre acessibilidade digital!</b>\n\nAcompanhe conteúdos e dicas no perfil oficial do projeto.`,
-          { parse_mode: 'HTML', reply_markup: more }
-        );
-
-      case 'get_pdf':
-        return bot.sendMessage(
-          chatId,
-          `📕 Aqui está a cartilha completa sobre acessibilidade digital:\n\n${WEBHOOK_URL}/cartilha.pdf`,
-          { parse_mode: 'HTML', reply_markup: backButton }
-        );
-
-      default:
-        return bot.sendMessage(chatId, 'Escolha uma opção válida no menu.', { reply_markup: backButton });
-    }
-  } catch (err) {
-    console.error('❌ Erro no callback:', err);
-    await bot.sendMessage(chatId, 'Ocorreu um erro. Tente novamente.');
+            [{ text: "📘 Baixar Cartilha Digital", url: `${WEBHOOK_URL}/cartilha.pdf` }],
+            [{ text: "📢 Sobre o Projeto", callback_data: "sobre" }],
+            [{ text: "🔙 Voltar ao menu", callback_data: "menu" }],
+          ],
+        },
+      }
+    );
   }
 });
 
-app.listen(PORT, () => console.log(`🚀 Servidor online na porta ${PORT}`));
+// =============================
+// 🔁 CALLBACKS DOS BOTÕES INLINE
+// =============================
+bot.on("callback_query", (callbackQuery) => {
+  const chatId = callbackQuery.message.chat.id;
+  const data = callbackQuery.data;
+
+  if (data === "menu") {
+    mainMenu(chatId);
+  }
+
+  if (data === "sobre") {
+    bot.sendMessage(
+      chatId,
+      "📖 *Projeto Inclusão Digital e Acessibilidade*\n\n" +
+        "Este projeto foi desenvolvido pelo grupo formado por *Fernando, Henrique, Thaylan e Erik*, com o objetivo de promover conhecimento sobre acessibilidade digital e inclusão tecnológica.\n\n" +
+        "💙 A inclusão digital é cidadania!",
+      {
+        parse_mode: "Markdown",
+        reply_markup: {
+          inline_keyboard: [[{ text: "🔙 Voltar ao menu", callback_data: "menu" }]],
+        },
+      }
+    );
+  }
+});
+
+// =============================
+// 🚀 SERVIDOR EXPRESS
+// =============================
+app.get("/", (req, res) => {
+  res.send(`
+    <body style="font-family: Arial; text-align: center; margin-top: 50px">
+      <h2>🤖 Inclusão Digital Bot</h2>
+      <p>O bot está online e conectado com o Telegram!</p>
+      <a href="https://t.me/SeuBotUsername" target="_blank">Abrir no Telegram</a>
+    </body>
+  `);
+});
+
+app.listen(PORT, () => {
+  console.log(`✅ Servidor ativo na porta ${PORT}`);
+  console.log(`🌐 Webhook configurado em: ${WEBHOOK_URL}/bot${TOKEN}`);
+});
