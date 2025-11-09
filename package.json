@@ -1,30 +1,16 @@
 {
   "name": "inclusao-digital-bot",
   "version": "1.0.0",
-  "description": "Bot de inclusão digital e acessibilidade para Telegram, com integração via Render e Webhook.",
+  "description": "Bot de inclusão digital - polling (sem webhook) para Render",
   "type": "module",
   "main": "telegram_bot.js",
   "scripts": {
-    "start": "node telegram_bot.js",
-    "dev": "nodemon telegram_bot.js"
+    "start": "node telegram_bot.js"
   },
-  "keywords": [
-    "telegram",
-    "bot",
-    "inclusao-digital",
-    "acessibilidade",
-    "webhook",
-    "render"
-  ],
-  "author": "Fernando, Henrique, Thaylan e Erik",
-  "license": "MIT",
   "dependencies": {
     "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "node-telegram-bot-api": "^0.64.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.0"
+    "node-telegram-bot-api": "^0.64.0",
+    "express": "^4.19.2"
   },
   "engines": {
     "node": ">=18.0.0"
