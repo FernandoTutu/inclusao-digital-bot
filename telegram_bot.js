@@ -4,7 +4,7 @@ import https from "https";
 
 dotenv.config();
 
-const TOKEN = process.env.BOT_TOKEN;
+const TOKEN = "8587728506:AAGj2BaQT79Jp3-Xh59iZs2_t2ezW4zbBRE";
 if (!TOKEN) {
   console.error("Falta BOT_TOKEN no ambiente");
   process.exit(1);
